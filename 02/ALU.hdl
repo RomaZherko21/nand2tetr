@@ -1,0 +1,100 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/2/ALU.hdl
+/**
+ * ALU (Arithmetic Logic Unit):
+ * Computes out = one of the following functions:
+ *                0, 1, -1,
+ *                x, y, !x, !y, -x, -y,
+ *                x + 1, y + 1, x - 1, y - 1,
+ *                x + y, x - y, y - x,
+ *                x & y, x | y
+ * on the 16-bit inputs x, y,
+ * according to the input bits zx, nx, zy, ny, f, no.
+ * In addition, computes the two output bits:
+ * if (out == 0) zr = 1, else zr = 0
+ * if (out < 0)  ng = 1, else ng = 0
+ */
+// Implementation: Manipulates the x and y inputs
+// and operates on the resulting values, as follows:
+// if (zx == 1) sets x = 0        // 16-bit constant
+// if (nx == 1) sets x = !x       // bitwise not
+// if (zy == 1) sets y = 0        // 16-bit constant
+// if (ny == 1) sets y = !y       // bitwise not
+// if (f == 1)  sets out = x + y  // integer 2's complement addition
+// if (f == 0)  sets out = x & y  // bitwise and
+// if (no == 1) sets out = !out   // bitwise not
+
+CHIP ALU {
+    IN  
+        x[16], y[16],  // 16-bit inputs        
+        zx, // zero the x input?
+        nx, // negate the x input?
+        zy, // zero the y input?
+        ny, // negate the y input?
+        f,  // compute (out = x + y) or (out = x & y)?
+        no; // negate the out output?
+    OUT 
+        out[16], // 16-bit output
+        zr,      // if (out == 0) equals 1, else 0
+        ng;      // if (out < 0)  equals 1, else 0
+
+    PARTS:
+        // zx
+        Or16(a=x, 
+         b[0]=zx, b[1]=zx, b[2]=zx, b[3]=zx,
+         b[4]=zx, b[5]=zx, b[6]=zx, b[7]=zx,
+         b[8]=zx, b[9]=zx, b[10]=zx, b[11]=zx,
+         b[12]=zx, b[13]=zx, b[14]=zx, b[15]=zx,
+         out=zxOr);
+         Not16(in= zxOr, out= zx1);
+
+         Mux16(a= x, b= zx1, sel= zx, out= zxOut);
+
+         // nx
+         Not16(in= zxOut, out= nx1);
+         Mux16(a= zxOut, b= nx1, sel= nx, out= nxOut);
+
+         // zy 
+             Or16(a=y, 
+         b[0]=zy, b[1]=zy, b[2]=zy, b[3]=zy,
+         b[4]=zy, b[5]=zy, b[6]=zy, b[7]=zy,
+         b[8]=zy, b[9]=zy, b[10]=zy, b[11]=zy,
+         b[12]=zy, b[13]=zy, b[14]=zy, b[15]=zy,
+         out=zyOr);
+         Not16(in= zyOr, out= zy1);
+
+         Mux16(a= y, b= zy1, sel= zy, out= zyOut);
+
+         // ny
+         Not16(in= zyOut, out= ny1);
+         Mux16(a= zyOut, b= ny1, sel= ny, out= nyOut);
+
+         // f
+         Add16(a = nxOut, b = nyOut, out = OutSumF);
+         And16(a=nxOut , b=nyOut , out=OutAndF );
+         Mux16(a=OutAndF , b=OutSumF , sel=f , out=fOut );
+
+         // no
+         Not16(in= fOut, out= NotNo);
+         Mux16(a=fOut , b=NotNo , sel=no , out=out );
+         Mux16(a=fOut , b=NotNo , sel=no , out=qwe );
+
+         // zr
+        Mux16(a=qwe, b=qwe, sel=false, out[0..7]=a8, out[8..15]=b8);
+        Or8Way(in= a8, out= aOr);    
+        Or8Way(in= b8, out= bOr);
+        Or(a= aOr, b= bOr, out= oo);
+        Not(in= oo, out= zr);    
+
+
+         // ng
+       Or16(a= qwe, b= qwe, out[15]= ng);
+       
+         
+
+
+
+    //// Replace this comment with your code.
+}
